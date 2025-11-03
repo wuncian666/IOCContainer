@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 
 namespace IOCContainer
 {
-    public enum CollectionEnum
+    public static class ServiceCollectionContainerBuilderExtensions
     {
-        TRANSIENT,
-        SINGLETON
     }
 }

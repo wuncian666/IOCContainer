@@ -1,9 +1,4 @@
-﻿using IOCContainer.生肖;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 
 namespace IOCContainer
 {
@@ -11,7 +6,7 @@ namespace IOCContainer
     {
         private static void Main(string[] args)
         {
-            ServiceCollection services = new ServiceCollection();
+            IServiceCollection services = new ServiceCollection();
 
             //services.RegisteTransientClass<十二生肖, 十二生肖>();
             //services.RegisteTransientClass<鼠, 鼠>();
@@ -43,13 +38,14 @@ namespace IOCContainer
             //Car tesla1 = services.GetService<Car>();
             //tesla1.PrintName();
 
-            services.RegisteTransientClass<Student, Student>();
-            services.RegisteTransientClass<School, School>();
-            services.RegisteSingletionClass<Teacher, Teacher>();
+            services.AddTransient<Student, Student>();
+            services.AddTransient<School, School>();
+            services.AddSingleton<Teacher, Teacher>();
 
-            var teacher = services.GetService<Teacher>();
-            var student = services.GetService<Student>();
-            var school = services.GetService<School>();
+            var provider = services.BuildServiceProvider();
+            var teacher = provider.GetService<Teacher>();
+            var student = provider.GetService<Student>();
+            var school = provider.GetService<School>();
 
             student.Name = "new student";
             Console.WriteLine($"{student.Name}");
@@ -61,10 +57,10 @@ namespace IOCContainer
             teacher.Student.Name = "new new student";
             Console.WriteLine($"{teacher.Student.Name} and {teacher.School.Name}");
 
-            var secondSchool = services.GetService<School>();
+            var secondSchool = provider.GetService<School>();
             Console.WriteLine(secondSchool.Name);
 
-            var secondTeacher = services.GetService<Teacher>();
+            var secondTeacher = provider.GetService<Teacher>();
             Console.WriteLine($"{secondTeacher.Student.Name} and {secondTeacher.School.Name}");
 
             Console.ReadKey();

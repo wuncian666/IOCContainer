@@ -1,98 +1,172 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IOCContainer
 {
-    public class ServiceCollection
+    public class ServiceCollection : IServiceCollection
     {
-        private readonly Dictionary<string, List<TypeWithClassName>> classMap = new Dictionary<string, List<TypeWithClassName>>();
+        private readonly Dictionary<Type, List<ServiceDescriptor>> _classMap = new Dictionary<Type, List<ServiceDescriptor>>();
 
-        private readonly Dictionary<string, object> existEntityMap = new Dictionary<string, object>();
+        public ServiceDescriptor this[int index] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        public void RegisteSingletionClass<TIn, TOut>()
+        public int Count => throw new NotImplementedException();
+
+        public bool IsReadOnly => throw new NotImplementedException();
+
+        IServiceProvider IServiceCollection.BuildServiceProvider()
         {
-            var inClassName = typeof(TIn).FullName;
-            var outClassName = typeof(TOut).FullName;
-            TypeWithClassName typeWithClassName = new TypeWithClassName(CollectionEnum.SINGLETON, outClassName);
-            Boolean hasClass = classMap.TryGetValue(inClassName, out List<TypeWithClassName> classList);
-            if (hasClass)
+            return new ServiceProvider(this._classMap);
+        }
+
+        //public void AddSingleton<TIn, TOut>()
+        //{
+        //    var serviceType = typeof(TIn);
+        //    var implementType = typeof(TOut);
+        //    ServiceDescriptor typeWithClassName = new ServiceDescriptor(ServiceLifetime.SINGLETON, serviceType, implementType);
+        //    Boolean hasClass = classMap.TryGetValue(serviceType.FullName, out List<ServiceDescriptor> classList);
+        //    if (hasClass)
+        //    {
+        //        classList.Add(typeWithClassName);
+        //    }
+        //    else
+        //    {
+        //        List<ServiceDescriptor> typeWithClassNames =
+        //            new List<ServiceDescriptor>() { typeWithClassName };
+        //        classMap.Add(serviceType.FullName, typeWithClassNames);
+        //    }
+        //}
+
+        //public void AddTransient<TIn, TOut>()
+        //{
+        //    var serviceType = typeof(TIn);
+        //    var implementType = typeof(TOut);
+        //    var typeWithClassName = new ServiceDescriptor(ServiceLifetime.TRANSIENT, serviceType, implementType);
+        //    Boolean hasClass = classMap.TryGetValue(serviceType.FullName, out List<ServiceDescriptor> classList);
+        //    if (hasClass)
+        //    {
+        //        classList.Add(typeWithClassName);
+        //    }
+        //    else
+        //    {
+        //        List<ServiceDescriptor> typeWithClassNames =
+        //            new List<ServiceDescriptor>() { typeWithClassName };
+        //        classMap.Add(serviceType.FullName, typeWithClassNames);
+        //    }
+        //}
+
+        //public void AddTransient<T>(Func<ServiceCollection, object> implementationFactory)
+        //{
+        //    var serviceType = typeof(T);
+        //    var serviceDescriptor = new ServiceDescriptor(ServiceLifetime.TRANSIENT, serviceType, null);
+        //    serviceDescriptor.ImplementationFactory = implementationFactory;
+        //    Boolean hasClass = classMap.TryGetValue(serviceType.FullName, out List<ServiceDescriptor> classList);
+        //    if (hasClass)
+        //    {
+        //        classList.Add(serviceDescriptor);
+        //    }
+        //    else
+        //    {
+        //        List<ServiceDescriptor> typeWithClassNames =
+        //            new List<ServiceDescriptor>() { serviceDescriptor };
+        //        classMap.Add(serviceType.FullName, typeWithClassNames);
+        //    }
+        //}
+
+        public IServiceCollection AddTransient(Type serviceType, Type implementationType)
+        {
+            return Add(this, serviceType, implementationType, ServiceLifetime.TRANSIENT);
+        }
+
+        public IServiceCollection AddTransient(Type serviceType, Func<IServiceProvider, object> implementationFactory)
+        {
+            return Add(this, serviceType, implementationFactory, ServiceLifetime.TRANSIENT);
+        }
+
+        private static IServiceCollection Add(
+            IServiceCollection collection,
+            Type serviceType,
+            Type implementationType,
+            ServiceLifetime lifetime)
+        {
+            var descriptor = new ServiceDescriptor(serviceType, implementationType, lifetime);
+            collection.Add(descriptor);
+            return collection;
+        }
+
+        private static IServiceCollection Add(
+            IServiceCollection collection,
+            Type serviceType,
+            Func<IServiceProvider, object> implementationFactory,
+            ServiceLifetime lifetime)
+        {
+            var descriptor = new ServiceDescriptor(serviceType, implementationFactory, lifetime);
+            collection.Add(descriptor);
+            return collection;
+        }
+
+        public void Add(ServiceDescriptor item)
+        {
+            bool isExist = _classMap.TryGetValue(item.ServiceType, out var descriptors);
+            if (!isExist)
             {
-                classList.Add(typeWithClassName);
+                descriptors = new List<ServiceDescriptor>();
+                _classMap.Add(item.ServiceType, descriptors);
             }
-            else
+            descriptors.Add(item);
+        }
+
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Contains(ServiceDescriptor item)
+        {
+            _classMap.TryGetValue(item.ServiceType, out var descriptors);
+            return descriptors.Contains(item);
+        }
+
+        public void CopyTo(ServiceDescriptor[] array, int arrayIndex)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerator<ServiceDescriptor> GetEnumerator()
+        {
+            foreach (var item in _classMap.Values.SelectMany(x => x))
             {
-                List<TypeWithClassName> typeWithClassNames =
-                    new List<TypeWithClassName>() { typeWithClassName };
-                classMap.Add(inClassName, typeWithClassNames);
+                yield return item;
             }
         }
 
-        public void RegisteTransientClass<TIn, TOut>()
+        public int IndexOf(ServiceDescriptor item)
         {
-            var inClassName = typeof(TIn).FullName;
-            var outClassName = typeof(TOut).FullName;
-            var typeWithClassName = new TypeWithClassName(CollectionEnum.TRANSIENT, outClassName);
-            Boolean hasClass = classMap.TryGetValue(inClassName, out List<TypeWithClassName> classList);
-            if (hasClass)
-            {
-                classList.Add(typeWithClassName);
-            }
-            else
-            {
-                List<TypeWithClassName> typeWithClassNames =
-                    new List<TypeWithClassName>() { typeWithClassName };
-                classMap.Add(inClassName, typeWithClassNames);
-            }
+            _classMap.TryGetValue(item.ServiceType, out var descriptors);
+            return descriptors.IndexOf(item);
         }
 
-        // form
-        public T GetService<T>()
+        public void Insert(int index, ServiceDescriptor item)
         {
-            string name = typeof(T).FullName;
-            classMap.TryGetValue(name, out List<TypeWithClassName> outNames);
-            TypeWithClassName outName = outNames.Last();
-
-            if (outName.IsSingleton())
-            {
-                if (existEntityMap.TryGetValue(name, out var existEntity))
-                {
-                    return (T)existEntity;
-                }
-                else
-                {
-                    T newEntity = (T)this.CreateInstance<T>();
-                    existEntityMap.Add(name, newEntity);
-                    return newEntity;
-                }
-            }
-
-            return (T)this.CreateInstance<T>();
+            _classMap.TryGetValue(item.ServiceType, out var descriptors);
+            descriptors.Insert(index, item);
         }
 
-        private T CreateInstance<T>()
+        public bool Remove(ServiceDescriptor item)
         {
-            Type t = typeof(T);
-            ConstructorInfo constructorInfo = t.GetConstructors().Last();
-            var parameters = constructorInfo.GetParameters();
-            if (parameters.Length == 0)
-            {
-                return (T)Activator.CreateInstance(t);
-            }
+            _classMap.TryGetValue(item.ServiceType, out var descriptors);
+            return descriptors.Remove(item);
+        }
 
-            List<object> instances = new List<object>();
-            foreach (ParameterInfo parameter in parameters)
-            {
-                Type type = parameter.ParameterType;
-                var methodInfo = typeof(ServiceCollection).GetMethod("GetService", BindingFlags.Public | BindingFlags.Instance);
-                var genericMethod = methodInfo.MakeGenericMethod(type);
-                var instance = genericMethod.Invoke(this, null);
-                instances.Add(instance);
-            }
-            return (T)Activator.CreateInstance(t, instances.ToArray());
+        public void RemoveAt(int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

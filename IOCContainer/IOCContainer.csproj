@@ -43,17 +43,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CollectionEnum.cs" />
+    <Compile Include="IServiceCollection.cs" />
+    <Compile Include="IServiceProvider.cs" />
+    <Compile Include="ServiceCollectionContainerBuilderExtensions.cs" />
+    <Compile Include="ServiceCollectionServiceExtensions.cs" />
+    <Compile Include="ServiceLifetime.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="School.cs" />
+    <Compile Include="School\School.cs" />
     <Compile Include="ServiceCollection.cs" />
-    <Compile Include="Car.cs" />
-    <Compile Include="Student.cs" />
-    <Compile Include="Teacher.cs" />
-    <Compile Include="Tesla.cs" />
-    <Compile Include="Toyota.cs" />
-    <Compile Include="TypeWithClassName.cs" />
+    <Compile Include="Cars\Car.cs" />
+    <Compile Include="School\Student.cs" />
+    <Compile Include="School\Teacher.cs" />
+    <Compile Include="Cars\Tesla.cs" />
+    <Compile Include="Cars\Toyota.cs" />
+    <Compile Include="ServiceDescriptor.cs" />
+    <Compile Include="ServiceProvider.cs" />
     <Compile Include="生肖\兔.cs" />
     <Compile Include="生肖\十二生肖.cs" />
     <Compile Include="生肖\牛.cs" />
