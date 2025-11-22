@@ -1,21 +1,51 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace IOCContainer
 {
     public class ServiceCollection : IServiceCollection
     {
+        private readonly List<ServiceDescriptor> _items = new List<ServiceDescriptor>();
+
         private readonly Dictionary<Type, List<ServiceDescriptor>> _classMap = new Dictionary<Type, List<ServiceDescriptor>>();
 
-        public ServiceDescriptor this[int index] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public ServiceDescriptor this[int index]
+        {
+            get => _items[index];
+            set
+            {
+                var old = _items[index];
 
-        public int Count => throw new NotImplementedException();
+                if (_classMap.TryGetValue(old.ServiceType, out var oldList))
+                {
+                    oldList.Remove(old);
+                    if (oldList.Count == 0) _classMap.Remove(old.ServiceType);
+                }
 
-        public bool IsReadOnly => throw new NotImplementedException();
+                _items[index] = value;
 
-        IServiceProvider IServiceCollection.BuildServiceProvider()
+                if (!_classMap.TryGetValue(value.ServiceType, out var newList))
+                {
+                    newList = new List<ServiceDescriptor>();
+                    _classMap.Add(value.ServiceType, newList);
+                }
+                newList.Add(value);
+            }
+        }
+
+        public int Count => _items.Count;
+
+        public bool IsReadOnly => false;
+
+        ServiceDescriptor IList<ServiceDescriptor>.this[int index]
+        {
+            get => this[index];
+            set => this[index] = value;
+        }
+
+        public IServiceProvider BuildServiceProvider()
         {
             return new ServiceProvider(this._classMap);
         }
@@ -76,12 +106,12 @@ namespace IOCContainer
 
         public IServiceCollection AddTransient(Type serviceType, Type implementationType)
         {
-            return Add(this, serviceType, implementationType, ServiceLifetime.TRANSIENT);
+            return Add(this, serviceType, implementationType, ServiceLifetime.Transient);
         }
 
         public IServiceCollection AddTransient(Type serviceType, Func<IServiceProvider, object> implementationFactory)
         {
-            return Add(this, serviceType, implementationFactory, ServiceLifetime.TRANSIENT);
+            return Add(this, serviceType, implementationFactory, ServiceLifetime.Transient);
         }
 
         private static IServiceCollection Add(
@@ -108,6 +138,8 @@ namespace IOCContainer
 
         public void Add(ServiceDescriptor item)
         {
+            _items.Add(item);
+
             bool isExist = _classMap.TryGetValue(item.ServiceType, out var descriptors);
             if (!isExist)
             {
@@ -119,54 +151,77 @@ namespace IOCContainer
 
         public void Clear()
         {
-            throw new NotImplementedException();
+            _items.Clear();
+            _classMap.Clear();
         }
 
         public bool Contains(ServiceDescriptor item)
         {
-            _classMap.TryGetValue(item.ServiceType, out var descriptors);
-            return descriptors.Contains(item);
+            if (item == null) return false;
+            return _items.Contains(item);
         }
 
         public void CopyTo(ServiceDescriptor[] array, int arrayIndex)
         {
-            throw new NotImplementedException();
+            _items.CopyTo(array, arrayIndex);
         }
 
         public IEnumerator<ServiceDescriptor> GetEnumerator()
         {
-            foreach (var item in _classMap.Values.SelectMany(x => x))
-            {
-                yield return item;
-            }
+            return _items.GetEnumerator();
         }
 
         public int IndexOf(ServiceDescriptor item)
         {
-            _classMap.TryGetValue(item.ServiceType, out var descriptors);
-            return descriptors.IndexOf(item);
+            if (item == null) return -1;
+            return _items.IndexOf(item);
         }
 
         public void Insert(int index, ServiceDescriptor item)
         {
-            _classMap.TryGetValue(item.ServiceType, out var descriptors);
-            descriptors.Insert(index, item);
+            _items.Insert(index, item);
+
+            if (!_classMap.TryGetValue(item.ServiceType, out var list))
+            {
+                list = new List<ServiceDescriptor>();
+                _classMap.Add(item.ServiceType, list);
+            }
+            list.Add(item);
         }
 
         public bool Remove(ServiceDescriptor item)
         {
-            _classMap.TryGetValue(item.ServiceType, out var descriptors);
-            return descriptors.Remove(item);
+            if (item == null) return false;
+
+            var removed = _items.Remove(item);
+            if (removed && _classMap.TryGetValue(item.ServiceType, out var list))
+            {
+                list.Remove(item);
+                if (list.Count == 0) _classMap.Remove(item.ServiceType);
+            }
+            return removed;
         }
 
         public void RemoveAt(int index)
         {
-            throw new NotImplementedException();
+            var item = _items[index];
+            _items.RemoveAt(index);
+
+            if (_classMap.TryGetValue(item.ServiceType, out var list))
+            {
+                list.Remove(item);
+                if (list.Count == 0) _classMap.Remove(item.ServiceType);
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        IEnumerator<ServiceDescriptor> IEnumerable<ServiceDescriptor>.GetEnumerator()
+        {
+            return _items.GetEnumerator();
         }
     }
 }
